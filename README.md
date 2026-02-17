@@ -10,7 +10,7 @@ Trigger Sync RFD_P+ demonstrates how to integrate and use the Zebra RFID API3 SD
 
 ---
 
-## v1.0.0 Highlights
+## v1.0.1 Highlights
 
 - Initial public GitHub release for Trigger Sync RFD_P+.
 - Added trigger synchronization documentation for safe RFID/Barcode switching.
