@@ -16,6 +16,15 @@ This project is a sample Android application demonstrating integration with the 
 - **Threading**: All device operations are performed off the UI thread using a single-threaded executor to ensure responsiveness.
 - **Permissions**: Handles all required Bluetooth and location permissions, including Android 12+ requirements.
 
+## Trigger Sync (RFID ↔ Barcode)
+- **Busy Guard (`bRfidBusy`)**: Set on `INVENTORY_START_EVENT`, cleared on `INVENTORY_STOP_EVENT`; prevents mode switching while RFID radio is active.
+- **Mutual Exclusion (`resourceLock`)**: Serializes trigger reconfiguration methods (`setTriggerEnabled`, `restoreDefaultTriggerConfig`) to avoid overlapping SDK calls.
+- **Deadlock Safety**: `waitForReaderIdle()` uses bounded waiting (2s total) and throws `TimeoutException` instead of blocking indefinitely.
+- **Safe Switch Sequence**:
+	- RFID → Barcode: `subsribeRfidTriggerEvents(false)` then `setTriggerEnabled(false)`.
+	- Barcode → RFID: `setTriggerEnabled(true)` then `subsribeRfidTriggerEvents(true)`.
+- **Failure Behavior**: Any timeout or SDK exception returns `false` and unlocks in `finally`, guaranteeing lock release.
+
 ## Build & Deployment
 - All Zebra .aar libraries are included in `app/libs` and referenced via Gradle `flatDir`.
 - Build and deployment are automated via `build_deploy_launch.sh`.
@@ -30,4 +39,4 @@ This project is a sample Android application demonstrating integration with the 
 - See `history.md` and `README.md` for release notes and usage instructions.
 
 ---
-For questions or contributions, see the repository at https://github.com/GelatoCookie/AI_Java_SDKSample
+For questions or contributions, see the repository at https://github.com/GelatoCookie/Trigger_Sync_RFD40PP

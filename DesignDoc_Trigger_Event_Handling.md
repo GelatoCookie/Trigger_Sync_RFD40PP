@@ -67,7 +67,23 @@ When switching modes (e.g., from RFID to Barcode), these methods should be used 
 | **Timeout (2s)** | Prevents the UI thread or background executor from hanging indefinitely if the reader gets stuck in a busy state. |
 | **Try-Catch-Finally** | Ensures locks are always released, even if the SDK throws an unexpected exception. |
 
-## 6. Code Reference
+## 6. Deadlock-Avoidance Contract
+
+To keep trigger mode changes safe under concurrent events, the implementation follows these rules:
+
+1. **Never block indefinitely while holding `resourceLock`**
+    - `waitForReaderIdle()` has bounded retries and fails fast with `TimeoutException`.
+2. **Never require event thread locks for busy-state transitions**
+    - `bRfidBusy` is `volatile` and updated directly by status events.
+3. **Always release lock on every path**
+    - `setTriggerEnabled` and `restoreDefaultTriggerConfig` unlock in `finally`.
+4. **Switch order is intentional**
+    - RFID→Barcode unsubscribes RFID trigger events before hardware switch.
+    - Barcode→RFID applies hardware mode first, then subscribes to RFID trigger events.
+
+These rules prevent circular waiting between trigger event handling and trigger configuration APIs.
+
+## 7. Code Reference
 
 ```java
 public boolean setTriggerEnabled(boolean isRfidEnabled) {
