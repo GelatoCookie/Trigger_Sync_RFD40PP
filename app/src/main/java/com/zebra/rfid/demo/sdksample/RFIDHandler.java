@@ -4,11 +4,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import com.zebra.rfid.api3.Antennas;
 import com.zebra.rfid.api3.ENUM_NEW_KEYLAYOUT_TYPE;
 import com.zebra.rfid.api3.ENUM_TRANSPORT;
 import com.zebra.rfid.api3.HANDHELD_TRIGGER_EVENT_TYPE;
-import com.zebra.rfid.api3.INVENTORY_STATE;
 import com.zebra.rfid.api3.IRFIDLogger;
 import com.zebra.rfid.api3.InvalidUsageException;
 import com.zebra.rfid.api3.OperationFailureException;
@@ -19,8 +17,6 @@ import com.zebra.rfid.api3.Readers;
 import com.zebra.rfid.api3.RfidEventsListener;
 import com.zebra.rfid.api3.RfidReadEvents;
 import com.zebra.rfid.api3.RfidStatusEvents;
-import com.zebra.rfid.api3.SESSION;
-import com.zebra.rfid.api3.SL_FLAG;
 import com.zebra.rfid.api3.STATUS_EVENT_TYPE;
 import com.zebra.rfid.api3.TagData;
 import com.zebra.scannercontrol.DCSSDKDefs;
@@ -43,6 +39,7 @@ import java.util.concurrent.locks.ReentrantLock;
 class RFIDHandler implements Readers.RFIDReaderEventHandler {
     private static final String CONNECTION_FAILED = "Connection failed";
     private static final String TAG = "RFID_SAMPLE";
+    private static final String BUSY_RETRY_MESSAGE = "BUSY and Retry Set Trigger Again!!!";
     private Readers readers;
     private ArrayList<ReaderDevice> availableRFIDReaderList;
     private RFIDReader reader;
@@ -52,7 +49,6 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
     private ScannerHandler scannerHandler;
     private ArrayList<DCSScannerInfo> scannerList;
     private int scannerID;
-    private static final int MAX_POWER = 270;
     private static final String READER_NAME = "RFD4031-G10B700-WR";
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private int connectionTimer = 0;
@@ -82,43 +78,6 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         scannerList = new ArrayList<>();
         scannerHandler = new ScannerHandler(activity);
         initSdk();
-    }
-
-    /**
-     * Placeholder for test function 1.
-     * @return String indicating not implemented.
-     */
-    public String Test1() { return "TO DO"; }
-
-    /**
-     * Placeholder for test function 2.
-     * @return String indicating not implemented.
-     */
-    public String Test2() { return "TODO2"; }
-
-    /**
-     * Applies default antenna and singulation settings to the RFID reader.
-     * @return Status message indicating result.
-     */
-    public String Defaults() {
-        if (!isReaderConnected() || context == null) return context != null ? context.getString(R.string.not_connected) : "Not connected";
-        try {
-            Antennas.AntennaRfConfig config = reader.Config.Antennas.getAntennaRfConfig(1);
-            config.setTransmitPowerIndex(MAX_POWER);
-            config.setrfModeTableIndex(0);
-            config.setTari(0);
-            reader.Config.Antennas.setAntennaRfConfig(1, config);
-
-            Antennas.SingulationControl singulationControl = reader.Config.Antennas.getSingulationControl(1);
-            singulationControl.setSession(SESSION.SESSION_S0);
-            singulationControl.Action.setInventoryState(INVENTORY_STATE.INVENTORY_STATE_A);
-            singulationControl.Action.setSLFlag(SL_FLAG.SL_ALL);
-            reader.Config.Antennas.setSingulationControl(1, singulationControl);
-        } catch (InvalidUsageException | OperationFailureException e) {
-            Log.e(TAG, "Error in Defaults", e);
-            return e.getMessage();
-        }
-        return context.getString(R.string.default_settings_applied);
     }
 
     /**
@@ -365,12 +324,18 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
             try {
                 if (eventHandler == null) eventHandler = new EventHandler();
                 reader.Events.addEventsListener(eventHandler);
+
+                /// ///////////////////////////////////////
                 reader.Events.setHandheldEvent(true);
+                Log.d(TAG, "ECRT: Configuration, Default: Subscribe RFID Hardware Trigger Event");
+
                 reader.Events.setTagReadEvent(true);
                 reader.Events.setAttachTagDataWithReadEvent(false);
                 reader.Events.setReaderDisconnectEvent(true);
+                /// ///////////////////////////////////////
                 reader.Events.setInventoryStartEvent(true);
                 reader.Events.setInventoryStopEvent(true);
+                Log.d(TAG, "ECRT: Configuration, subscript RFID Engine Start and Stop Event");
                 reader.Events.setOperationEndSummaryEvent(true);
                 setupScannerSdk();
                 restoreDefaultTriggerConfig();
@@ -383,12 +348,14 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
 
     public void subsribeRfidTriggerEvents(boolean bRfidHardwareTriggerEvent){
         if(reader != null && reader.isConnected()) {
+            Log.v(TAG, "### subsribeRfidTriggerEvents: rfid=" + bRfidHardwareTriggerEvent);
             reader.Events.setHandheldEvent(bRfidHardwareTriggerEvent);
         }
     }
 
     public boolean restoreDefaultTriggerConfig() {
         resourceLock.lock();
+        Log.d(TAG, "### restoreDefaultTriggerConfig");
         try {
             if (reader == null || !reader.isConnected()) return false;
             // Wait for reader to become idle
@@ -396,6 +363,10 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 waitForReaderIdle();
             } catch (TimeoutException e) {
                 Log.e(TAG, "restoreDefaultTriggerConfig failed: " + e.getMessage());
+                if(bRfidBusy){
+                    stopInventory();
+                }
+                context.showSnackbar(BUSY_RETRY_MESSAGE, false);
                 return false;
             }
             try {
@@ -403,14 +374,14 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 reader.Config.getKeylayoutType();
                 ENUM_NEW_KEYLAYOUT_TYPE upperTriggerValue = reader.Config.getUpperTriggerValue();
                 ENUM_NEW_KEYLAYOUT_TYPE lowerTriggerValue = reader.Config.getLowerTriggerValue();
-                Log.v(TAG, "### upper=" + upperTriggerValue.name() + ", lower=" + lowerTriggerValue);
+                logTriggerValues(upperTriggerValue, lowerTriggerValue);
                 /// /////////////////////////////////////////////////////////////////////////////////
-                RFIDResults result = reader.Config.setKeylayoutType(ENUM_NEW_KEYLAYOUT_TYPE.RFID, ENUM_NEW_KEYLAYOUT_TYPE.SLED_SCAN);
+                reader.Config.setKeylayoutType(ENUM_NEW_KEYLAYOUT_TYPE.RFID, ENUM_NEW_KEYLAYOUT_TYPE.SLED_SCAN);
 
                 ENUM_NEW_KEYLAYOUT_TYPE upperTriggerValue2 = reader.Config.getUpperTriggerValue();
                 ENUM_NEW_KEYLAYOUT_TYPE lowerTriggerValue2 = reader.Config.getLowerTriggerValue();
                 Log.v(TAG, "### After Restore...");
-                Log.v(TAG, "### upper=" + upperTriggerValue2.name() + ", lower=" + lowerTriggerValue2);
+                logTriggerValues(upperTriggerValue2, lowerTriggerValue2);
                 return true;
             } catch (InvalidUsageException | OperationFailureException e) {
                 Log.e(TAG, "Exception in setTriggerEnabled", e);
@@ -424,26 +395,41 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
     public boolean setTriggerEnabled(boolean isRfidEnabled) {
         resourceLock.lock();
         try {
-            if (reader == null || !reader.isConnected()) return false;
-            // Wait for reader to become idle
-            try {
-                waitForReaderIdle();
-            } catch (TimeoutException e) {
-                Log.e(TAG, "setTriggerEnabled failed: " + e.getMessage());
+            if (reader == null || !reader.isConnected() || context == null) return false;
+
+            if(bRfidBusy){
+
+                context.showSnackbar(BUSY_RETRY_MESSAGE, false);
+                stopInventory();
                 return false;
             }
+
+            Log.d(TAG, "### setTriggerEnabled: rfid=" + isRfidEnabled);
+
             ENUM_NEW_KEYLAYOUT_TYPE mode = isRfidEnabled ? ENUM_NEW_KEYLAYOUT_TYPE.RFID : ENUM_NEW_KEYLAYOUT_TYPE.SLED_SCAN;
             try {
                 Log.v(TAG, "### before setTriggerEnabled: rfid=" + isRfidEnabled);
                 RFIDResults result = reader.Config.setKeylayoutType(mode, mode);
+
+                ENUM_NEW_KEYLAYOUT_TYPE upperTriggerValue2 = reader.Config.getUpperTriggerValue();
+                ENUM_NEW_KEYLAYOUT_TYPE lowerTriggerValue2 = reader.Config.getLowerTriggerValue();
+                Log.v(TAG, "### After setTriggerEnabled...");
+                logTriggerValues(upperTriggerValue2, lowerTriggerValue2);
+
+
                 Log.v(TAG, "### after setTriggerEnabled: rfid=" + isRfidEnabled);
                 if (result == RFIDResults.RFID_API_SUCCESS) {
-                    Log.d(TAG, "Trigger configuration success: " + mode.name());
+                    Log.v(TAG, "#################################################");
+                    Log.v(TAG, "Trigger configuration success: " + mode.name());
+                    Log.v(TAG, "#################################################");
+                    subsribeRfidTriggerEvents(isRfidEnabled);
                     return true;
                 } else {
                     Log.e(TAG, "Trigger configuration failed: " + result.toString());
                 }
             } catch (InvalidUsageException | OperationFailureException e) {
+                stopInventory();
+                context.showSnackbar(BUSY_RETRY_MESSAGE, false);
                 Log.e(TAG, "Exception in setTriggerEnabled", e);
             }
             return false;
@@ -457,15 +443,28 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
      * @throws TimeoutException if the reader remains busy after the timeout period.
      */
     private void waitForReaderIdle() throws TimeoutException {
+        Log.d(TAG, "Waiting for reader idle...");
         for (int i = 0; i < 10; i++) {
-            if (!bRfidBusy) return;
+            if (!bRfidBusy) {
+                Log.d(TAG, "Reader is idle at loop = " + i);
+                return;
+            }
             try {
-                Thread.sleep(200);
+                Thread.sleep(300);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new TimeoutException("Interrupted while waiting for reader idle");
             }
         }
+        if(bRfidBusy) {
+            Log.e(TAG, "Reader is busy: Timeout waiting for idle state");
+
+            stopInventory();
+
+            context.showSnackbar(BUSY_RETRY_MESSAGE, false);
+        }
+
+
         throw new TimeoutException("Reader is busy: Timeout waiting for idle state");
     }
 
@@ -529,13 +528,16 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 reader.disconnect();
                 if (context != null)
                     context.updateReaderStatus(context.getString(R.string.disconnected), false);
-                reader.Dispose();
                 reader = null;
                 sdkHandler = null;
             }
         } catch (Exception e) {
             Log.e(TAG, "Error during disconnect", e);
         }
+    }
+
+    private void logTriggerValues(ENUM_NEW_KEYLAYOUT_TYPE upper, ENUM_NEW_KEYLAYOUT_TYPE lower) {
+        Log.v(TAG, "### upper=" + upper.name() + ", lower=" + lower);
     }
 
     private synchronized void dispose() {
@@ -632,9 +634,13 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 if (context != null) context.dismissToast();
             } else if (eventType == STATUS_EVENT_TYPE.INVENTORY_STOP_EVENT) {
                 bRfidBusy = false;
+                Log.v(TAG, "###5 API Inventory Stop Event, RFID Engine NOT BUSY and Ready for next command....");
                 if(context != null && context.getTestStatus()) {
+                    //MUST DO This first to prevent trigger debounce
+                    subsribeRfidTriggerEvents(false);
                     context.dismissToast();
                     context.showSnackbar("Pull Trigger: \r\nScan Barcode", false);
+                    Log.v(TAG, "###6 testBarcode: switch both Hardware Triggers from RFID to Barcode Test...");
                     testBarcode();
                 }
             } else if (eventType == STATUS_EVENT_TYPE.OPERATION_END_SUMMARY_EVENT) {
@@ -647,7 +653,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
 
         private void handleTriggerEvent(RfidStatusEvents rfidStatusEvents) {
             if (rfidStatusEvents.StatusEventData.HandheldTriggerEventData == null) return;
-
+            Log.v(TAG, "### handleTriggerEvent for hardware trigger event...");
             HANDHELD_TRIGGER_EVENT_TYPE triggerEvent = rfidStatusEvents.StatusEventData.HandheldTriggerEventData.getHandheldEvent();
             boolean isPressed = (triggerEvent == HANDHELD_TRIGGER_EVENT_TYPE.HANDHELD_TRIGGER_PRESSED);
 
@@ -658,11 +664,11 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                         context.runOnUiThread(() -> context.showSnackbar("Ignored: RFID Busy", true));
                     }
                 } else {
-                    Log.d(TAG, "Trigger Pressed: Starting Inventory...");
+                    Log.v(TAG, "###3 Hardware Trigger Pressed: Starting Inventory...");
                     if (context != null) context.handleTriggerPress(true);
                 }
             } else {
-                Log.d(TAG, "Trigger Released: Stopping Inventory...");
+                Log.v(TAG, "###4 Hardware Trigger Released: Stopping Inventory...");
                 if (context != null) context.handleTriggerPress(false);
             }
         }
@@ -670,7 +676,10 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
 
     void testBarcode(){
         if (context != null) {
+            Log.v(TAG, "###7 testBarcode: switch from RFID to Barcode Trigger");
+            Log.v(TAG, "STEP 1: subscribe RFID Hardware Trigger Events");
             subsribeRfidTriggerEvents(false);
+            Log.v(TAG, "STEP 2: Configure the Hardware Trigger as Barcode");
             setTriggerEnabled(false);
         }
     }

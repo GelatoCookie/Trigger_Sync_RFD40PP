@@ -79,6 +79,7 @@ public class ScannerHandler implements IDcsSdkApiDelegate {
     public void dcssdkEventBarcode(byte[] barcodeData, int barcodeType, int fromScannerID) {
         String s = new String(barcodeData);
         if (context != null) {
+            Log.v(TAG, "### dcssdkEventBarcode: Received Barcode = " + s);
             context.barcodeData(s);
         }
         Log.d(TAG, "Barcode scanned: " + s);
@@ -87,21 +88,36 @@ public class ScannerHandler implements IDcsSdkApiDelegate {
     /**
      * Called when an image is received from the scanner (not used).
      */
-    @Override public void dcssdkEventImage(byte[] bytes, int i) {}
+    @Override
+    public void dcssdkEventImage(byte[] bytes, int i) {
+        Log.v(TAG, "Image event ignored for scanner ID: " + i);
+    }
     /**
      * Called when a video is received from the scanner (not used).
      */
-    @Override public void dcssdkEventVideo(byte[] bytes, int i) {}
+    @Override
+    public void dcssdkEventVideo(byte[] bytes, int i) {
+        Log.v(TAG, "Video event ignored for scanner ID: " + i);
+    }
     /**
      * Called when binary data is received from the scanner (not used).
      */
-    @Override public void dcssdkEventBinaryData(byte[] bytes, int i) {}
+    @Override
+    public void dcssdkEventBinaryData(byte[] bytes, int i) {
+        Log.v(TAG, "Binary data event ignored for scanner ID: " + i);
+    }
     /**
      * Called when a firmware update event occurs (not used).
      */
-    @Override public void dcssdkEventFirmwareUpdate(FirmwareUpdateEvent firmwareUpdateEvent) {}
+    @Override
+    public void dcssdkEventFirmwareUpdate(FirmwareUpdateEvent firmwareUpdateEvent) {
+        Log.v(TAG, "Firmware update event received");
+    }
     /**
      * Called when an auxiliary scanner appears (not used).
      */
-    @Override public void dcssdkEventAuxScannerAppeared(DCSScannerInfo dcsScannerInfo, DCSScannerInfo dcsScannerInfo1) {}
+    @Override
+    public void dcssdkEventAuxScannerAppeared(DCSScannerInfo dcsScannerInfo, DCSScannerInfo dcsScannerInfo1) {
+        Log.v(TAG, "Aux scanner appeared event received");
+    }
 }

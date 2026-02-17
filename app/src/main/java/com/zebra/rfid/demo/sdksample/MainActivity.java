@@ -2,7 +2,6 @@ package com.zebra.rfid.demo.sdksample;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
@@ -13,6 +12,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -45,6 +45,7 @@ import java.util.HashSet;
  */
 public class MainActivity extends AppCompatActivity implements RFIDHandler.ResponseHandlerInterface {
 
+    private static final String TAG = "RFID_SAMPLE MainActivity ";
     /**
      * List of tag IDs detected by the RFID reader.
      */
@@ -147,8 +148,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                     showSnackbar("SKIP!!!\nRFID Busy", true);
                 }
                 else {
-                    Context context = v.getContext();
-                    scanCode(context);
+                    scanCode();
                 }
             });
         }
@@ -170,11 +170,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             if (btnStart != null) {
                 btnStart.setEnabled(isConnected);
             }
-            if (status.contains(getString(R.string.connecting))) {
-                showProgress(true);
-            } else {
-                showProgress(false);
-            }
+            showProgress(status.contains(getString(R.string.connecting)));
         });
     }
 
@@ -219,11 +215,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
 
 
     private boolean checkReaderHealthy(){
-        if(rfidHandler!=null && rfidHandler.isReaderConnected()){
-           if(!rfidHandler.isbRfidBusy())
-               return true;
-        }
-        return false;
+        return rfidHandler != null && rfidHandler.isReaderConnected() && !rfidHandler.isbRfidBusy();
     }
 
     @Override
@@ -232,34 +224,26 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         if (rfidHandler == null) return super.onOptionsItemSelected(item);
 
         if (!checkReaderHealthy()) {
-                showSnackbar("SKIP!!!\nRFID Busy", true);
-                return false;
+            showSnackbar("SKIP!!!\nRFID Busy", true);
+            return false;
         } 
-        /////////////////////////////////////////
         if (id == R.id.trigger_rfid_rfid) {
-            if (checkReaderHealthy()) {
-                rfidHandler.setTriggerEnabled(true);
-                showSnackbar("RFID Triggers Enabled", true);
-                return true;
-            } 
+            rfidHandler.setTriggerEnabled(true);
+            showSnackbar("RFID Triggers Enabled", true);
+            return true;
         } else if (id == R.id.trigger_barcode_barcode) {
-            if (checkReaderHealthy()) {
-                rfidHandler.setTriggerEnabled(false);
-                showSnackbar("Barcode Triggers Enabled", true);
-                return true;
-            } 
+            rfidHandler.setTriggerEnabled(false);
+            showSnackbar("Barcode Triggers Enabled", true);
+            return true;
         } else if (id == R.id.Default) {
-            if (checkReaderHealthy()) {
-                rfidHandler.restoreDefaultTriggerConfig();
-                showSnackbar("Default Trigger Settings", true);
-                return true;
-            } 
+            rfidHandler.restoreDefaultTriggerConfig();
+            showSnackbar("Default Trigger Settings", true);
+            return true;
         } else if (id == R.id.auto) {
-            if (checkReaderHealthy()) {
-                bTestTriggerConfig = true;
-                showSnackbar("Pull Trigger:\nRFID Operation\n\nBarcode Trigger Disabled", false);
-                return true;
-            } 
+            Log.v(TAG, "###1 ECRT: RFID Trigger Enabled");
+            bTestTriggerConfig = true;
+            showSnackbar("Pull Trigger:\nRFID Operation\n\nBarcode Trigger Disabled", false);
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -329,10 +313,9 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         });
     }
 
-    public void scanCode(Context view) {
+    public void scanCode() {
         /**
          * Initiates barcode scanning when the scan button is pressed.
-         * @param view The view that triggered this method.
          */
         if (rfidHandler != null) rfidHandler.scanCode();
     }
@@ -423,6 +406,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
 
                 if(bTestTriggerConfig) {
                     sendToast("Restore to RFID");
+                    Log.v(TAG, "###8  Restore to RFID and Re-configure both Triggers back to RFID");
                     rfidHandler.subsribeRfidTriggerEvents(true);
                     rfidHandler.setTriggerEnabled(true);
                     bTestTriggerConfig = false;

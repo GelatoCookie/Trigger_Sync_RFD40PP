@@ -7,7 +7,6 @@ This project is a sample Android application demonstrating integration with the 
 - **MainActivity**: Handles all UI logic, user interactions, and implements the `RFIDHandler.ResponseHandlerInterface` for callbacks.
 - **RFIDHandler**: Encapsulates all RFID reader logic, including connection management, inventory, and event handling. Uses an `ExecutorService` for background operations.
 - **ScannerHandler**: Implements the Zebra scanner SDK delegate for barcode events and session management.
-- **MainUIHandler**: Abstract class for UI update patterns, allowing for future extension or separation of UI logic.
 
 ## Key Components
 - **RFID Connection**: Bluetooth-based, with support for multiple Zebra reader models. Handles connection, disconnection, and error states.
@@ -19,10 +18,10 @@ This project is a sample Android application demonstrating integration with the 
 ## Trigger Sync (RFID ↔ Barcode)
 - **Busy Guard (`bRfidBusy`)**: Set on `INVENTORY_START_EVENT`, cleared on `INVENTORY_STOP_EVENT`; prevents mode switching while RFID radio is active.
 - **Mutual Exclusion (`resourceLock`)**: Serializes trigger reconfiguration methods (`setTriggerEnabled`, `restoreDefaultTriggerConfig`) to avoid overlapping SDK calls.
-- **Deadlock Safety**: `waitForReaderIdle()` uses bounded waiting (2s total) and throws `TimeoutException` instead of blocking indefinitely.
+- **Bounded Wait Safety**: `waitForReaderIdle()` uses bounded waiting (up to ~3s total) and throws `TimeoutException` instead of blocking indefinitely.
 - **Safe Switch Sequence**:
 	- RFID → Barcode: `subsribeRfidTriggerEvents(false)` then `setTriggerEnabled(false)`.
-	- Barcode → RFID: `setTriggerEnabled(true)` then `subsribeRfidTriggerEvents(true)`.
+	- Barcode → RFID: `setTriggerEnabled(true)` (method internally ensures RFID trigger events align with mode).
 - **Failure Behavior**: Any timeout or SDK exception returns `false` and unlocks in `finally`, guaranteeing lock release.
 
 ## Build & Deployment

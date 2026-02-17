@@ -1,21 +1,48 @@
 
-# Trigger Sync RFD_P+
+# Zebra RFID SDK Sample Application
 
-**Release Version: v1.0.1**  
-Branch: `main`  
-Tag: `v1.0.1`
-Release Notes: [RELEASE_NOTES.md](RELEASE_NOTES.md)
+**Release Version: 1.1.3**  
+Branch: `master`  
+Tag: `1.1.3`
 
-Trigger Sync RFD_P+ demonstrates how to integrate and use the Zebra RFID API3 SDK for Android. It provides a practical implementation for connecting to Zebra RFID readers and safely switching hardware trigger behavior between RFID inventory and barcode scanning.
+This sample application demonstrates how to integrate and use the Zebra RFID API3 SDK for Android. It provides a basic implementation for connecting to Zebra RFID readers, performing inventory operations, and scanning barcodes.
 
 ---
 
-## v1.0.1 Highlights
+**Changelog**
 
-- Initial public GitHub release for Trigger Sync RFD_P+.
-- Added trigger synchronization documentation for safe RFID/Barcode switching.
-- Documented `bRfidBusy` busy-state guard with bounded idle wait to avoid deadlocks.
-- Added release workflows and release notes alignment for tag-based publishing.
+- **1.1.3 (2026-02-17):**
+    - Completed code cleanup pass for core handlers and activity classes.
+    - Removed unused `MainUIHandler` abstraction and stale placeholder methods.
+    - Simplified reader health checks and menu action logic in `MainActivity`.
+    - Refactored duplicated trigger logging/messages in `RFIDHandler`.
+    - Added explicit no-op handling logs for optional scanner callbacks.
+    - Validated changes with build/deploy/launch workflow.
+
+- **1.1.2 (2026-02-16):**
+    - Updated strings.xml and minor UI text improvements.
+    - Merged latest changes from remote and resolved all merge conflicts.
+    - Updated documentation and release notes for v1.1.2.
+    - Tagged and released as v1.1.2.
+
+- **1.1.1 (2026-02-15):**
+    - Updated app name to display version number (Trigger v1.1.1).
+    - Refactored trigger handling to route events through handleTriggerPress method.
+    - Improved tag clearing behavior with better data reset before scanning operations.
+    - Removed unused testFunction method for code cleanup.
+    - Added VS Code build tasks for streamlined development workflow.
+
+- **1.1.0 (2026-02-11):**
+    - Modernized Pop-up UI: Replaced traditional Toasts with centered, pill-shaped Snackbars.
+    - Added "Hourglass" loading indicator for auto-disappearing messages.
+    - Implemented manual and programmatic dismissal for all UI notifications.
+    - Improved stability: Added thread-safe trigger configuration and duplicate event prevention.
+    - UI Refinement: Enhanced centering and resizing logic for different screen resolutions.
+
+- **1.0.0 (2026-02-10):**
+    - Major code cleanup and refactoring for maintainability and style compliance.
+    - Reduced method complexity and improved naming conventions.
+    - Removed unused fields and improved exception handling.
 
 ## Features
 
@@ -25,14 +52,13 @@ Trigger Sync RFD_P+ demonstrates how to integrate and use the Zebra RFID API3 SD
 - **Tag Data Display:** View unique tag IDs along with their peak RSSI values in a list.
 - **Barcode Scanning:** Utilize the reader's scanner to capture barcode data.
 - **Hardware Trigger Support:** Handle hardware trigger presses for starting/stopping inventory or scanning barcodes.
-- **Settings Configuration:** Basic demonstration of modifying antenna settings and singulation control.
+- **Trigger Reconfiguration Safety:** Uses lock-based and busy-state guarded trigger switching to avoid invalid SDK operations.
 
 ## Project Structure
 
 - `MainActivity.java`: Handles the UI logic, user interactions, and the modern notification system.
 - `RFIDHandler.java`: Manages the lifecycle and operations of the Zebra RFID reader.
 - `ScannerHandler.java`: Handles barcode scanning functionality.
-- `MainUIHandler.java`: Helper for UI-related updates.
 
 ## Getting Started
 
@@ -57,6 +83,11 @@ Trigger Sync RFD_P+ demonstrates how to integrate and use the Zebra RFID API3 SD
 3. **Barcode Scan:** Tap the **Scan** button or use the hardware trigger (if configured) to scan barcodes.
 4. **View Tags:** Discovered tags will appear in the list with their EPC and RSSI.
 5. **Dismiss Messages:** Pop-up messages in the center of the screen can be dismissed manually by tapping the 'X' button or will auto-dismiss after 3 seconds if they show a loading icon.
+
+## Build and Launch
+
+- Use the provided script: `./build_deploy_launch.sh`
+- Or run the VS Code task: **Build and Launch App**
 
 ## Permissions
 

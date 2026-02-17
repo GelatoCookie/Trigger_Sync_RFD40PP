@@ -13,11 +13,11 @@ To support these modes, the application must dynamically reconfigure the hardwar
 Reconfiguring the hardware trigger (`setKeylayoutType`) involves sending commands to the reader. If the reader is currently performing an inventory (busy) or if multiple threads attempt to configure it simultaneously, the SDK may throw exceptions or the reader may enter an undefined state.
 
 ### 2.2. Synchronization Strategy
-To ensure thread safety and hardware stability, we employ a **"Wait-for-Idle"** pattern protected by a `ReentrantLock`.
+To ensure thread safety and hardware stability, we use a **lock + busy-guard** strategy, with bounded waiting reserved for default restore operations.
 
 *   **`resourceLock` (ReentrantLock):** Ensures mutual exclusion. Only one configuration operation can proceed at a time.
 *   **`bRfidBusy` (volatile boolean):** Acts as a guard. Configuration commands are blocked until this flag is `false` (indicating the reader is idle).
-*   **`waitForReaderIdle()`:** A helper method that polls `bRfidBusy` with a timeout mechanism to prevent deadlocks.
+*   **`waitForReaderIdle()`:** A bounded helper used by `restoreDefaultTriggerConfig()` to avoid waiting indefinitely while the reader is busy.
 
 ## 3. Detailed Design
 
@@ -26,14 +26,13 @@ This method physically reconfigures the reader's hardware trigger behavior.
 
 **Workflow:**
 1.  **Acquire Lock:** Enters `resourceLock` to block other configuration attempts.
-2.  **Wait for Idle:** Calls `waitForReaderIdle()`.
-    *   If the reader is busy (scanning), it waits up to 2 seconds.
-    *   If the timeout is reached, it throws a `TimeoutException` and aborts to prevent hardware errors.
+2.  **Check Busy Guard:** If `bRfidBusy` is `true`, operation is rejected immediately, inventory stop is requested, and UI gets a retry message.
 3.  **Determine Mode:**
     *   `true` -> `ENUM_NEW_KEYLAYOUT_TYPE.RFID` (Trigger starts RFID Inventory).
     *   `false` -> `ENUM_NEW_KEYLAYOUT_TYPE.SLED_SCAN` (Trigger activates Barcode Scanner).
 4.  **Apply Configuration:** Calls `reader.Config.setKeylayoutType(mode, mode)`.
-5.  **Release Lock:** Ensures the lock is released in a `finally` block.
+5.  **Align Event Subscription:** On success, calls `subsribeRfidTriggerEvents(isRfidEnabled)` to keep software events consistent with hardware mode.
+6.  **Release Lock:** Ensures the lock is released in a `finally` block.
 
 ### 3.2. `subsribeRfidTriggerEvents(boolean enable)`
 This method controls whether the application receives `HANDHELD_TRIGGER_EVENT` notifications from the SDK.
@@ -55,16 +54,16 @@ When switching modes (e.g., from RFID to Barcode), these methods should be used 
 ### Scenario: Switching to RFID Mode
 1.  **Reconfigure Hardware:** Call `setTriggerEnabled(true)`.
     *   *Reason:* Tell the hardware the trigger is for RFID.
-2.  **Subscribe Events:** Call `subsribeRfidTriggerEvents(true)`.
-    *   *Reason:* Now that the hardware is ready, start listening for press events to trigger `performInventory()`.
+2.  **Subscription Alignment:** `setTriggerEnabled(true)` enables RFID trigger events on success.
+    *   *Reason:* Keeps app event handling synchronized with hardware mode.
 
 ## 5. Safety Mechanisms
 
 | Mechanism | Purpose |
 | :--- | :--- |
 | **`ReentrantLock`** | Prevents `restoreDefaultTriggerConfig` and `setTriggerEnabled` from running concurrently. |
-| **`waitForReaderIdle`** | Prevents sending configuration commands while the radio is active (Inventorying), which causes `OperationFailureException`. |
-| **Timeout (2s)** | Prevents the UI thread or background executor from hanging indefinitely if the reader gets stuck in a busy state. |
+| **`waitForReaderIdle`** | Prevents sending restore-default commands while the radio is active (inventorying). |
+| **Timeout (~3s)** | Prevents hangs if the reader remains busy/stuck during restore-default workflow. |
 | **Try-Catch-Finally** | Ensures locks are always released, even if the SDK throws an unexpected exception. |
 
 ## 6. Deadlock-Avoidance Contract
@@ -79,7 +78,7 @@ To keep trigger mode changes safe under concurrent events, the implementation fo
     - `setTriggerEnabled` and `restoreDefaultTriggerConfig` unlock in `finally`.
 4. **Switch order is intentional**
     - RFID→Barcode unsubscribes RFID trigger events before hardware switch.
-    - Barcode→RFID applies hardware mode first, then subscribes to RFID trigger events.
+    - Barcode→RFID applies hardware mode and enables RFID trigger events on successful configuration.
 
 These rules prevent circular waiting between trigger event handling and trigger configuration APIs.
 
@@ -89,20 +88,22 @@ These rules prevent circular waiting between trigger event handling and trigger 
 public boolean setTriggerEnabled(boolean isRfidEnabled) {
     resourceLock.lock();
     try {
-        if (reader == null || !reader.isConnected()) return false;
-
-        try {
-            waitForReaderIdle();
-        } catch (TimeoutException e) {
-            Log.e(TAG, "setTriggerEnabled failed: " + e.getMessage());
+        if (reader == null || !reader.isConnected() || context == null) return false;
+        if (bRfidBusy) {
+            context.showSnackbar("BUSY and Retry Set Trigger Again!!!", false);
+            stopInventory();
             return false;
         }
 
-        ENUM_NEW_KEYLAYOUT_TYPE mode = isRfidEnabled ? 
-            ENUM_NEW_KEYLAYOUT_TYPE.RFID : ENUM_NEW_KEYLAYOUT_TYPE.SLED_SCAN;
-            
+        ENUM_NEW_KEYLAYOUT_TYPE mode = isRfidEnabled
+            ? ENUM_NEW_KEYLAYOUT_TYPE.RFID
+            : ENUM_NEW_KEYLAYOUT_TYPE.SLED_SCAN;
         RFIDResults result = reader.Config.setKeylayoutType(mode, mode);
-        return result == RFIDResults.RFID_API_SUCCESS;
+        if (result == RFIDResults.RFID_API_SUCCESS) {
+            subsribeRfidTriggerEvents(isRfidEnabled);
+            return true;
+        }
+        return false;
     } finally {
         resourceLock.unlock();
     }

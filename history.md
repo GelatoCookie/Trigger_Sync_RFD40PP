@@ -1,12 +1,16 @@
 
 # History
 
+## 2026-02-17 - Version 1.1.3
+- Completed code cleanup across `MainActivity`, `RFIDHandler`, and `ScannerHandler`.
+- Removed unused `MainUIHandler` and other stale placeholder code.
+- Updated documentation (`README.md`, `design.md`, `DesignDoc_Trigger_Event_Handling.md`, `RELEASE_NOTES.md`).
+- Successfully built and deployed app to device `59040DLCH003LK`.
+
 ## 2026-02-16 - Version 1.1.2
-## 2026-02-16 - Version 1.1.3
-- Clean up and generate the public release 1.1.3
-
-
-- Successfully built and deployed app to device 59040DLCH003LK.
+- Updated strings and minor UI text improvements.
+- Merged latest remote changes and resolved conflicts.
+- Updated release documentation for v1.1.2.
 
 ## 2026-02-10
 - Build and run process completed successfully on macOS.

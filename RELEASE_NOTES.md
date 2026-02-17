@@ -1,5 +1,14 @@
 # Release Notes
 
+## v1.1.3 (2026-02-17)
+
+- Performed focused code cleanup across core app classes (`MainActivity`, `RFIDHandler`, `ScannerHandler`).
+- Removed unused `MainUIHandler` and stale placeholder methods from RFID flow.
+- Simplified reader health checks and trigger menu action logic.
+- Consolidated duplicated busy/retry handling and trigger value logging.
+- Updated `README.md`, `design.md`, and `DesignDoc_Trigger_Event_Handling.md` to reflect current architecture and trigger behavior.
+- Validated with build/deploy/launch (`./build_deploy_launch.sh`) on connected device.
+
 ## v1.0.1 (2026-02-17)
 
 - Renamed branding to Trigger Sync RFD_P+.
