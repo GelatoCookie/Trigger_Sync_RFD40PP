@@ -1,9 +1,9 @@
 
 # Trigger Sync RFD_P+
 
-**Release Version: v1.0.0**  
+**Release Version: v1.0.1**  
 Branch: `main`  
-Tag: `v1.0.0`
+Tag: `v1.0.1`
 Release Notes: [RELEASE_NOTES.md](RELEASE_NOTES.md)
 
 Trigger Sync RFD_P+ demonstrates how to integrate and use the Zebra RFID API3 SDK for Android. It provides a practical implementation for connecting to Zebra RFID readers and safely switching hardware trigger behavior between RFID inventory and barcode scanning.
