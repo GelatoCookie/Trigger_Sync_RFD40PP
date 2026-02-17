@@ -4,6 +4,7 @@
 **Release Version: 1.1.2**  
 Branch: `master`  
 Tag: `1.1.2`
+Release Notes: [RELEASE_NOTES.md](RELEASE_NOTES.md)
 
 This sample application demonstrates how to integrate and use the Zebra RFID API3 SDK for Android. It provides a basic implementation for connecting to Zebra RFID readers, performing inventory operations, and scanning barcodes.
 
