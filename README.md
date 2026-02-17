@@ -10,35 +10,12 @@ This sample application demonstrates how to integrate and use the Zebra RFID API
 
 ---
 
-**Changelog**
+## v1.0.0 Highlights
 
-- **1.1.3 (2026-02-16):**
-    - Placeholder for changes in v1.1.3. Update with actual changes as needed.
-
-- **1.1.2 (2026-02-16):**
-    - Updated strings.xml and minor UI text improvements.
-    - Merged latest changes from remote and resolved all merge conflicts.
-    - Updated documentation and release notes for v1.1.2.
-    - Tagged and released as v1.1.2.
-
-- **1.1.1 (2026-02-15):**
-    - Updated app name to display version number (Trigger v1.1.1).
-    - Refactored trigger handling to route events through handleTriggerPress method.
-    - Improved tag clearing behavior with better data reset before scanning operations.
-    - Removed unused testFunction method for code cleanup.
-    - Added VS Code build tasks for streamlined development workflow.
-
-- **1.1.0 (2026-02-11):**
-    - Modernized Pop-up UI: Replaced traditional Toasts with centered, pill-shaped Snackbars.
-    - Added "Hourglass" loading indicator for auto-disappearing messages.
-    - Implemented manual and programmatic dismissal for all UI notifications.
-    - Improved stability: Added thread-safe trigger configuration and duplicate event prevention.
-    - UI Refinement: Enhanced centering and resizing logic for different screen resolutions.
-
-- **1.0.0 (2026-02-10):**
-    - Major code cleanup and refactoring for maintainability and style compliance.
-    - Reduced method complexity and improved naming conventions.
-    - Removed unused fields and improved exception handling.
+- Initial public GitHub release for Trigger Sync RFD40PP.
+- Added trigger synchronization documentation for safe RFID/Barcode switching.
+- Documented `bRfidBusy` busy-state guard with bounded idle wait to avoid deadlocks.
+- Added release workflows and release notes alignment for tag-based publishing.
 
 ## Features
 
