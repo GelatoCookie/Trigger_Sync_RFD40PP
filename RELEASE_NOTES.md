@@ -2,8 +2,8 @@
 
 ## v1.0.0 (2026-02-17)
 
-- Initial public GitHub publish for Trigger Sync RFD40PP.
-- Repository initialized and pushed to `main` at `GelatoCookie/Trigger_Sync_RFD40PP`.
+- Initial public GitHub publish for Trigger Sync RFD_P+.
+- Repository initialized and pushed to `main` on GitHub.
 - Added deadlock-safe trigger synchronization documentation for RFID/Barcode switching.
 - Documented `bRfidBusy` busy-state guard behavior and bounded idle wait strategy.
 - Added explicit safe switch sequence guidance:

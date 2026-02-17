@@ -1,18 +1,18 @@
 
-# Trigger Sync RFD40PP
+# Trigger Sync RFD_P+
 
 **Release Version: v1.0.0**  
 Branch: `main`  
 Tag: `v1.0.0`
 Release Notes: [RELEASE_NOTES.md](RELEASE_NOTES.md)
 
-Trigger Sync RFD40PP demonstrates how to integrate and use the Zebra RFID API3 SDK for Android. It provides a practical implementation for connecting to Zebra RFID readers and safely switching hardware trigger behavior between RFID inventory and barcode scanning.
+Trigger Sync RFD_P+ demonstrates how to integrate and use the Zebra RFID API3 SDK for Android. It provides a practical implementation for connecting to Zebra RFID readers and safely switching hardware trigger behavior between RFID inventory and barcode scanning.
 
 ---
 
 ## v1.0.0 Highlights
 
-- Initial public GitHub release for Trigger Sync RFD40PP.
+- Initial public GitHub release for Trigger Sync RFD_P+.
 - Added trigger synchronization documentation for safe RFID/Barcode switching.
 - Documented `bRfidBusy` busy-state guard with bounded idle wait to avoid deadlocks.
 - Added release workflows and release notes alignment for tag-based publishing.

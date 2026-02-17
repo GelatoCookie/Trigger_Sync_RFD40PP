@@ -39,4 +39,4 @@ This project is a sample Android application demonstrating integration with the 
 - See `history.md` and `README.md` for release notes and usage instructions.
 
 ---
-For questions or contributions, see the repository at https://github.com/GelatoCookie/Trigger_Sync_RFD40PP
+For questions or contributions, see the project repository on GitHub.
