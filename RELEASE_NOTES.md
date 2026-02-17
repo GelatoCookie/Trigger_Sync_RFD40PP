@@ -1,5 +1,12 @@
 # Release Notes
 
+## v1.0.1 (2026-02-17)
+
+- Renamed branding to Trigger Sync RFD_P+.
+- Improved `build_deploy_launch.sh` for multi-device `adb` handling and macOS Bash compatibility.
+- Added `.docx` exports for all project Markdown documentation.
+- Updated README and release-note consistency.
+
 ## v1.0.0 (2026-02-17)
 
 - Initial public GitHub publish for Trigger Sync RFD_P+.
