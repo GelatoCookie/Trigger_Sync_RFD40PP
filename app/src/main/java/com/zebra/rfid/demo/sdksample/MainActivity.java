@@ -38,12 +38,100 @@ import com.zebra.rfid.api3.TagData;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 /**
  * Main Activity for the RFID Sample application.
  */
 public class MainActivity extends AppCompatActivity implements RFIDHandler.ResponseHandlerInterface {
+
+    /**
+     * Enables or disables the scan button.
+     * @param enabled True to enable, false to disable.
+     */
+    public void setScanButtonEnabled(boolean enabled) {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (btnScan != null) {
+                btnScan.setEnabled(enabled);
+            }
+        });
+    }
+
+    private void toggleInventoryButtons(boolean isRunning) {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (btnStart != null) btnStart.setEnabled(!isRunning);
+            if (btnStop != null) btnStop.setEnabled(isRunning);
+        });
+    }
+
+    // --- Test Loop Trigger Config ---
+    private int testLoopCount = 0;
+    private final int TEST_LOOP_MAX = 10;
+    private boolean isTestLoopRunning = false;
+    private boolean isWaitingForBarcode = false;
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    private void testLoopSwitchTriggerConfig() {
+        if (isTestLoopRunning) {
+            showSnackbar("Test loop already running", true);
+            return;
+        }
+        isTestLoopRunning = true;
+        startRFIDTestLoop();
+        startRFIDTestLoop();
+    }
+
+    private void startRFIDTestLoop() {
+        executor.execute(() -> {
+            for(int i=0; i<3; i++) {
+
+                runOnUiThread(() -> {
+                    showSnackbar("RFID Trigger", true);
+                    startRfidTest();
+
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    handleTriggerPress(false);
+                    showSnackbar("Barcode Trigger", true);
+                    startBarcodeTest();
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+
+
+                });
+
+
+
+
+
+            }
+        });
+    }
+
+    private void startBarcodeTest() {
+        runOnUiThread(() -> {
+            rfidHandler.subsribeRfidTriggerEvents(false);
+            rfidHandler.setTriggerEnabled(false);
+        });
+    }
+
+    private void startRfidTest() {
+        runOnUiThread(() -> {
+            rfidHandler.subsribeRfidTriggerEvents(true);
+            rfidHandler.setTriggerEnabled(true);
+        });
+    }
 
     private static final String TAG = "RFID_SAMPLE MainActivity ";
     /**
@@ -248,50 +336,6 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (rfidHandler != null) {
-            rfidHandler.onPause();
-        }
-    }
-
-    @Override
-    protected void onPostResume() {
-        super.onPostResume();
-        if (rfidHandler != null) rfidHandler.onResume();
-    }
-
-    @Override
-    protected void onDestroy() {
-        showProgress(false);
-        if (rfidHandler != null) {
-            rfidHandler.onDestroy();
-        }
-        super.onDestroy();
-    }
-
-    private void toggleInventoryButtons(boolean isRunning) {
-        runOnUiThread(() -> {
-            if (isFinishing() || isDestroyed()) return;
-            if (btnStart != null) btnStart.setEnabled(!isRunning);
-            if (btnStop != null) btnStop.setEnabled(isRunning);
-        });
-    }
-
-    public void setScanButtonEnabled(boolean enabled) {
-        /**
-         * Enables or disables the scan button.
-         * @param enabled True to enable, false to disable.
-         */
-        runOnUiThread(() -> {
-            if (isFinishing() || isDestroyed()) return;
-            if (btnScan != null) {
-                btnScan.setEnabled(enabled);
-            }
-        });
-    }
-
     public void StartInventory(View view) {
         /**
          * Starts RFID inventory when the start button is pressed.
@@ -387,9 +431,9 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         toggleInventoryButtons(pressed);
         if (pressed) {
             clearTagData();
-            if (rfidHandler != null) rfidHandler.performInventory();
+            if (rfidHandler != null && !rfidHandler.isbRfidBusy()) rfidHandler.performInventory();
         } else {
-            if (rfidHandler != null) rfidHandler.stopInventory();
+            if (rfidHandler != null && rfidHandler.isbRfidBusy()) rfidHandler.stopInventory();
         }
     }
 
@@ -461,8 +505,17 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             // Glassmorphism effect with larger rounded corners
             GradientDrawable shape = new GradientDrawable();
             shape.setCornerRadius(40f);
-            shape.setColor(Color.parseColor("#EE1A1A1A")); // Slightly more opaque
-            shape.setStroke(3, Color.parseColor("#44FFFFFF")); 
+            // If message is for barcode scan, use yellow, else default
+            if (message != null && (
+                message.toLowerCase().contains("rfid operation") ||
+                message.toLowerCase().contains("restore to rfid")
+            )) {
+                shape.setColor(Color.parseColor("#2196F3")); // Blue
+                shape.setStroke(3, Color.parseColor("#1976D2"));
+            } else {
+                shape.setColor(Color.parseColor("#EE1A1A1A")); // Slightly more opaque
+                shape.setStroke(3, Color.parseColor("#44FFFFFF"));
+            }
             snackbarView.setBackground(shape);
 
             // Positioning logic for "Large Window" effect
