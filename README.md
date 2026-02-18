@@ -122,3 +122,12 @@ on some Android versions)
 
 This project is for demonstration purposes. See the [LICENSE](LICENSE)
 file for details.
+
+## Release & History
+
+- **dev2.0.2 (2026-02-18):**
+  - Major release for Trigger Sync and deadlock-safe switching (see Trigger_Sync_Doc.md).
+  - Improved concurrency and lock-guarded trigger switching.
+  - Updated all documentation and markdown files for new architecture and release.
+  - All code and docs ready for dev2.0.2 tag and push.
+- See `history.md` for previous release notes and usage instructions.

@@ -74,9 +74,14 @@ operations, and handling barcode scans in a modern Android environment.
   workflows.
 - All main classes are documented with Javadoc for maintainability.
 
+
 ## Release & History
 
-- See `history.md` and `README.md` for release notes and usage
-  instructions.
+- **dev2.0.2 (2026-02-18):**
+    - Major release for Trigger Sync and deadlock-safe switching (see Trigger_Sync_Doc.md).
+    - Improved concurrency and lock-guarded trigger switching.
+    - Updated all documentation and markdown files for new architecture and release.
+    - All code and docs ready for dev2.0.2 tag and push.
+- See `history.md` and `README.md` for previous release notes and usage instructions.
 
 For questions or contributions, see the project repository on GitHub.

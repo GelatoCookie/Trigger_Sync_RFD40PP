@@ -38,3 +38,9 @@
 - Added deadlock-avoidance contract and failure-handling behavior for
   trigger configuration paths.
 - Created and pushed annotated release tag `v1.0.0`.
+
+## v2.0.2 (2026-02-18)
+- Major release for dev2 branch: Trigger Sync and deadlock-safe switching fully documented and validated.
+- Improved concurrency and lock-guarded trigger switching (see Trigger_Sync_Doc.md).
+- Updated all documentation and markdown files for new architecture and release.
+- All code and docs ready for dev2.0.2 tag and push.

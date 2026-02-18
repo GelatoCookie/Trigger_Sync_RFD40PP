@@ -78,10 +78,20 @@ trigger events.
 
 ## Verification Checklist
 
-- Press trigger repeatedly during mode switch; app should not freeze.
-- Force inventory active while switching; function should timeout safely
   and return `false`.
-- Confirm lock release by attempting subsequent switch operations after
   a failure.
+
+- Press trigger repeatedly during mode switch; app should not freeze.
+- Force inventory active while switching; function should timeout safely and return `false`.
+- Confirm lock release by attempting subsequent switch operations after a failure.
 - Confirm RFID trigger events are ignored in barcode mode.
 - Confirm trigger events resume in RFID mode after re-subscription.
+
+## Release & History
+
+- **dev2.0.2 (2026-02-18):**
+  - Major release for Trigger Sync and deadlock-safe switching.
+  - Improved concurrency and lock-guarded trigger switching.
+  - Updated all documentation and markdown files for new architecture and release.
+  - All code and docs ready for dev2.0.2 tag and push.
+- See `history.md` and `README.md` for previous release notes and usage instructions.

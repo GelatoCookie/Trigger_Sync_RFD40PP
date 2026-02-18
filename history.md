@@ -33,3 +33,9 @@
 - Removed unused fields, improved exception handling, and modernized
   code style.
 - Ready for commit and further development.
+
+## 2026-02-18 - Version 2.0.2 (dev2 branch)
+- Major release for Trigger Sync and deadlock-safe switching (see Trigger_Sync_Doc.md).
+- Improved concurrency and lock-guarded trigger switching.
+- Updated all documentation and markdown files for new architecture and release.
+- All code and docs ready for dev2.0.2 tag and push.
