@@ -1,18 +1,29 @@
 
 # Zebra RFID SDK Sample Application
 
-**Release Version: 1.1.3**  
-Branch: `master`  
-Tag: `1.1.3`
+**Release Version: v2.1.0-1-gfaf5192**  
+Branch: `main`  
+Tag: `v2.1.0`
 
 This sample application demonstrates how to integrate and use the Zebra RFID API3 SDK for Android. It provides a basic implementation for connecting to Zebra RFID readers, performing inventory operations, and scanning barcodes.
 
 ---
 
+**Current Git Info**
+
+- Local directory: /Users/chucklin/myprojects/MS_Code/Trigger_Sync_RFD40PP
+- Remote: https://github.com/GelatoCookie/Trigger_Sync_RFD40PP.git
+
 **Changelog**
 
-- **1.1.3 (2026-02-17):**
-    - Completed code cleanup pass for core handlers and activity classes.
+## v2.1.0-1-gfaf5192 (2026-02-18):
+    - Current tag: v2.1.0
+    - Current version: v2.1.0-1-gfaf5192
+    - Branch: main
+    - Local directory: /Users/chucklin/myprojects/MS_Code/Trigger_Sync_RFD40PP
+    - Remote: https://github.com/GelatoCookie/Trigger_Sync_RFD40PP.git
+    - No code changes since last release. Added DesignLogic.docx and updated documentation.
+
     - Removed unused `MainUIHandler` abstraction and stale placeholder methods.
     - Simplified reader health checks and menu action logic in `MainActivity`.
     - Refactored duplicated trigger logging/messages in `RFIDHandler`.
