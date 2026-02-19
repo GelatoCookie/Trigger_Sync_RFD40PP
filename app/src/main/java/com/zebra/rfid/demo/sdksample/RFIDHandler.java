@@ -381,6 +381,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 ENUM_NEW_KEYLAYOUT_TYPE upperTriggerValue2 = reader.Config.getUpperTriggerValue();
                 ENUM_NEW_KEYLAYOUT_TYPE lowerTriggerValue2 = reader.Config.getLowerTriggerValue();
                 Log.v(TAG, "### After Restore...");
+                subsribeRfidTriggerEvents(true); //for RFID
                 logTriggerValues(upperTriggerValue2, lowerTriggerValue2);
                 return true;
             } catch (InvalidUsageException | OperationFailureException e) {

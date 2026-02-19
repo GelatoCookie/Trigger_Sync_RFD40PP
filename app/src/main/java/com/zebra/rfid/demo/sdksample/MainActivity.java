@@ -461,7 +461,18 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             // Glassmorphism effect with larger rounded corners
             GradientDrawable shape = new GradientDrawable();
             shape.setCornerRadius(40f);
-            shape.setColor(Color.parseColor("#EE1A1A1A")); // Slightly more opaque
+            
+            // Highlight specific configuration messages with a Green color
+            if (message.contains("Barcode Trigger Disabled") || 
+                message.contains("Restore to RFID") ||
+                message.contains("RFID Triggers Enabled") ||
+                message.contains("Barcode Triggers Enabled") ||
+                message.contains("Default Trigger Settings")) {
+                shape.setColor(Color.parseColor("#EE388E3C")); // Material Green 700
+            } else {
+                shape.setColor(Color.parseColor("#EE1A1A1A")); // Default dark semi-transparent
+            }
+
             shape.setStroke(3, Color.parseColor("#44FFFFFF")); 
             snackbarView.setBackground(shape);
 
