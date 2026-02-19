@@ -52,7 +52,26 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
     private static final String READER_NAME = "RFD4031-G10B700-WR";
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private int connectionTimer = 0;
+    /**
+     * Indicates if the RFID reader is currently busy (e.g., inventory running).
+     * Contract:
+     *   - Set to true: On INVENTORY_START_EVENT (RFID operation begins).
+     *   - Set to false: On INVENTORY_STOP_EVENT (RFID operation ends).
+     *   - Only updated by the event handler thread.
+     *   - Checked before configuration changes (e.g., setTriggerEnabled, restoreDefaultTriggerConfig).
+     *   - If true, configuration is rejected and UI is notified.
+     *   - All state changes are logged for debugging.
+     */
     private volatile boolean bRfidBusy = false;
+
+    /**
+     * Controls transition of trigger event handling from RFID to Barcode mode.
+     * Contract:
+     *   - Set to true: On INVENTORY_STOP_EVENT in test mode, before switching to barcode.
+     *   - Set to false: When switching back to RFID mode (in setTriggerEnabled(true)).
+     *   - Checked in event handler for HANDHELD_TRIGGER_EVENT; if true, RFID trigger events are ignored.
+     *   - All state changes are logged for debugging.
+     */
     private volatile boolean bSwitchFromRfidToBarcode = false;
 
     private final Runnable timerRunnable = new Runnable() {
@@ -415,10 +434,10 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         resourceLock.lock();
         try {
             if (reader == null || !reader.isConnected() || context == null) return false;
-            
+
             // Design Doc: If bRfidBusy is true, operation is rejected immediately.
             if (bRfidBusy) {
-                Log.e(TAG, "setTriggerEnabled failed: Reader is busy");
+                Log.e(TAG, "setTriggerEnabled failed: Reader is busy (bRfidBusy=true)");
                 stopInventory();
                 uiHandler.post(() -> {
                     if (context != null) context.showSnackbar(BUSY_RETRY_MESSAGE, false);
@@ -438,17 +457,19 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 Log.v(TAG, "### After setTriggerEnabled...");
                 logTriggerValues(upperTriggerValue2, lowerTriggerValue2);
 
-
                 Log.v(TAG, "### after setTriggerEnabled: rfid=" + isRfidEnabled);
                 if (result == RFIDResults.RFID_API_SUCCESS) {
                     Log.v(TAG, "#################################################");
                     Log.v(TAG, "Trigger configuration success: " + mode.name());
                     Log.v(TAG, "#################################################");
-                    
+
                     // Design Doc: On success, calls subscribeRfidTriggerEvents(isRfidEnabled)
                     subscribeRfidHardwareTriggerEvents(isRfidEnabled);
-                    
+
                     if(isRfidEnabled) {
+                        if (bSwitchFromRfidToBarcode) {
+                            Log.i(TAG, "bSwitchFromRfidToBarcode changed: true -> false (switching back to RFID mode)");
+                        }
                         bSwitchFromRfidToBarcode = false;
                     }
                     return true;
@@ -645,7 +666,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
             STATUS_EVENT_TYPE eventType = rfidStatusEvents.StatusEventData.getStatusEventType();
             if (eventType == STATUS_EVENT_TYPE.HANDHELD_TRIGGER_EVENT) {
                 if(bSwitchFromRfidToBarcode){
-                    Log.v(TAG, "### IGNORE ALL RFID TRIGGER");
+                    Log.v(TAG, "### IGNORE ALL RFID TRIGGER (bSwitchFromRfidToBarcode=true)");
                     return;
                 }
                 handleTriggerEvent(rfidStatusEvents);
@@ -655,12 +676,21 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                     dispose();
                 });
             } else if (eventType == STATUS_EVENT_TYPE.INVENTORY_START_EVENT) {
+                if (!bRfidBusy) {
+                    Log.i(TAG, "bRfidBusy changed: false -> true (INVENTORY_START_EVENT)");
+                }
                 bRfidBusy = true;
                 if (context != null) context.dismissToast();
             } else if (eventType == STATUS_EVENT_TYPE.INVENTORY_STOP_EVENT) {
+                if (bRfidBusy) {
+                    Log.i(TAG, "bRfidBusy changed: true -> false (INVENTORY_STOP_EVENT)");
+                }
                 bRfidBusy = false;
                 Log.v(TAG, "###5 API Inventory Stop Event, RFID Engine NOT BUSY and Ready for next command....");
                 if(context != null && context.getTestStatus()) {
+                    if (!bSwitchFromRfidToBarcode) {
+                        Log.i(TAG, "bSwitchFromRfidToBarcode changed: false -> true (test mode, switching to barcode)");
+                    }
                     bSwitchFromRfidToBarcode = true;
                     //MUST DO This first to prevent trigger debounce
                     subscribeRfidHardwareTriggerEvents(false);
@@ -676,6 +706,18 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 Log.d(TAG, "Unhandled status event: " + eventType);
             }
         }
+    /**
+     * Test Mode Documentation:
+     *
+     * When the application is in test mode (context.getTestStatus() == true):
+     *   - On INVENTORY_STOP_EVENT, bSwitchFromRfidToBarcode is set to true and logged.
+     *   - subscribeRfidHardwareTriggerEvents(false) is called to prevent RFID logic from handling trigger events.
+     *   - The UI is notified to scan a barcode.
+     *   - testBarcode() is called, which disables RFID trigger events and sets the hardware trigger to barcode mode.
+     *   - When switching back to RFID mode (setTriggerEnabled(true)), bSwitchFromRfidToBarcode is reset to false and logged.
+     *
+     * This ensures robust and predictable trigger event handling when toggling between RFID and Barcode modes in test scenarios.
+     */
 
         private void handleTriggerEvent(RfidStatusEvents rfidStatusEvents) {
             if (rfidStatusEvents.StatusEventData.HandheldTriggerEventData == null) return;
